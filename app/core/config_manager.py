@@ -1,6 +1,8 @@
 import json
 import os
-from PySide6.QtCore import QObject, Signal
+from pathlib import Path
+
+from PyQt5.QtCore import QObject, pyqtSignal
 
 from dotenv import load_dotenv
 
@@ -8,9 +10,9 @@ load_dotenv()
 
 class ConfigManager(QObject):
     """Configuration manager responsible for loading and saving configuration"""
-    
-    config_changed = Signal()
-    
+
+    config_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.config_path = "config.json"
@@ -33,9 +35,10 @@ class ConfigManager(QObject):
             "api": {
                 "base_url": os.getenv("API_BASE_URL"),
                 "timeout": 10
-            }
+            },
+            "resources": str(Path(__file__).parent.parent.parent / "resources")
         }
-    
+
     def load_config(self):
         """Load configuration from file"""
         try:
@@ -48,7 +51,7 @@ class ConfigManager(QObject):
         except Exception as e:
             print(f"Failed to load configuration: {e}")
             self.config = self.default_config.copy()
-    
+
     def save_config(self):
         """Save configuration to file"""
         try:
@@ -57,7 +60,7 @@ class ConfigManager(QObject):
             self.config_changed.emit()
         except Exception as e:
             print(f"Failed to save configuration: {e}")
-    
+
     def get(self, key, default=None):
         """Get configuration item by key"""
         keys = key.split(".")
@@ -68,7 +71,7 @@ class ConfigManager(QObject):
             else:
                 return default
         return value
-    
+
     def set(self, key, value):
         """Set configuration item by key"""
         keys = key.split(".")
@@ -78,4 +81,4 @@ class ConfigManager(QObject):
                 config[k] = {}
             config = config[k]
         config[keys[-1]] = value
-        self.save_config() 
+        self.save_config()

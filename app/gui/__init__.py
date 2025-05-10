@@ -1,1 +1,1 @@
-"""GUI module for XBuddy Desktop""" 
+"""GUI module for XBuddy Desktop"""

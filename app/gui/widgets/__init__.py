@@ -1,1 +1,1 @@
-"""Custom widgets for the application""" 
+"""Custom widgets for the application"""

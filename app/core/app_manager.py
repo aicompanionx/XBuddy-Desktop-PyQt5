@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, Signal, Slot
+from PyQt5.QtCore import QObject
 from app.core.config_manager import ConfigManager
 from app.core.event_system import EventSystem
 from app import __version__
@@ -28,7 +28,7 @@ class AppManager(QObject):
         # Initialize Live2D model manager
         self.model_manager = ModelManager(self)
         self.model_manager.init()
-        
+
         # Create main window
         self.main_window = MainWindow(self)
         self.main_window.show()

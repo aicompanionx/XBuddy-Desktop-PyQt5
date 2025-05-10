@@ -1,11 +1,12 @@
 import os
 import json
 import random
-from PySide6.QtCore import QObject, QTimer
+from PyQt5.QtCore import QObject, QTimer
+
 
 class MotionManager(QObject):
     """Manager for Live2D model motions and expressions"""
-    
+
     def __init__(self, model_manager):
         super().__init__()
         self.model_manager = model_manager
@@ -13,34 +14,32 @@ class MotionManager(QObject):
         self.expressions = {}
         self.current_motion = None
         self.current_expression = None
-        
+
         # Idle motion timer
         self.idle_timer = QTimer(self)
         self.idle_timer.timeout.connect(self.play_idle_motion)
         self.idle_timer.setInterval(10000)  # 10 seconds
         self.idle_timer.start()
-    
+
     def load_motions(self, model_path):
         """Load motions from model directory"""
         self.motions = {}
         self.expressions = {}
-        
-        # Load model3.json or model.json
+
         model_json_path = None
         if os.path.exists(os.path.join(model_path, "model3.json")):
             model_json_path = os.path.join(model_path, "model3.json")
         elif os.path.exists(os.path.join(model_path, "model.json")):
             model_json_path = os.path.join(model_path, "model.json")
-        
+
         if not model_json_path:
             print(f"No model definition found in {model_path}")
             return
-        
+
         try:
             with open(model_json_path, "r", encoding="utf-8") as f:
                 model_data = json.load(f)
-            
-            # Load motions
+
             if "motions" in model_data:
                 for group_name, motions in model_data["motions"].items():
                     self.motions[group_name] = []
@@ -52,72 +51,56 @@ class MotionManager(QObject):
                                 "fade_in": motion.get("fade_in", 0),
                                 "fade_out": motion.get("fade_out", 0)
                             })
-            
-            # Load expressions
+
             if "expressions" in model_data:
                 for expression in model_data["expressions"]:
                     name = expression.get("name", "")
                     file_path = os.path.join(model_path, expression.get("file", ""))
                     if name and os.path.exists(file_path):
                         self.expressions[name] = file_path
-            
+
         except Exception as e:
             print(f"Failed to load motions: {e}")
-    
+
     def play_motion(self, group, index=None):
         """Play a specific motion"""
         if group in self.motions and self.motions[group]:
-            # If index is not specified, choose a random motion
             if index is None or index >= len(self.motions[group]):
                 index = random.randint(0, len(self.motions[group]) - 1)
-            
+
             motion_data = self.motions[group][index]
             self.current_motion = motion_data
-            
-            # In a real implementation, this would use the Live2D SDK
-            # to start playing the motion
+
             print(f"Playing motion: {group} {index}")
-            
-            # Reset idle timer
             self.idle_timer.start()
-            
             return True
         return False
-    
+
     def play_expression(self, name):
         """Play a specific expression"""
         if name in self.expressions:
             self.current_expression = name
-            
-            # In a real implementation, this would use the Live2D SDK
-            # to set the expression
             print(f"Playing expression: {name}")
-            
             return True
         return False
-    
+
     def play_idle_motion(self):
         """Play a random idle motion"""
         if "idle" in self.motions and self.motions["idle"]:
             self.play_motion("idle")
         elif self.motions:
-            # If no idle motions, play from the first available group
             group = list(self.motions.keys())[0]
             self.play_motion(group)
-    
+
     def on_tap(self, x, y):
         """Handle tap interaction"""
-        # Play a random tap motion if available
         if "tap" in self.motions and self.motions["tap"]:
             self.play_motion("tap")
-        
-        # Also play a random expression
+
         if self.expressions:
             expression = random.choice(list(self.expressions.keys()))
             self.play_expression(expression)
-    
+
     def update(self):
         """Update motion and expression state"""
-        # This would update the Live2D model's motion and expression
-        # For now, this is a placeholder
-        pass 
+        pass
