@@ -58,6 +58,10 @@ htmlcov/
 resources/models/*
 !resources/models/.gitkeep
 
+# Sounds specific
+resources/sounds/*
+!resources/sounds/.gitkeep
+
 # Compiled resources
 *.qrc.py
 
@@ -76,4 +80,7 @@ resources/models/*
 
 # Backup files
 *~
-*.bak 
+*.bak
+
+# Temp dir
+tmp/
