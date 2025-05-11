@@ -23,6 +23,8 @@ class PetWidget(LipSyncLive2DWidget):
     
     def __init__(self):
         super().__init__()
+        # Store timers for proper cleanup
+        self.timers = []
         
         # Ensure window stays on top but doesn't steal focus
         self.setWindowFlags(
@@ -55,6 +57,49 @@ class PetWidget(LipSyncLive2DWidget):
             except Exception as e:
                 print(f"Failed to apply macOS window trick: {e}")
 
+    def startTimer(self, interval):
+        """Override startTimer to keep track of timers for proper cleanup."""
+        timer_id = super().startTimer(interval)
+        self.timers.append(timer_id)
+        return timer_id
+
+    def stopAllTimers(self):
+        """Stop all active timers to prevent callbacks after destruction."""
+        for timer_id in self.timers:
+            self.killTimer(timer_id)
+        self.timers.clear()
+        
+    def cleanup(self):
+        """Perform thorough cleanup before destruction."""
+        if hasattr(self, '_cleanup_called') and self._cleanup_called:
+            return
+        
+        print("Performing thorough widget cleanup")
+        self._cleanup_called = True
+            
+        # Stop all timers first to prevent any further callbacks
+        self.stopAllTimers()
+        
+        # Call cleanup methods from each layer
+        try:
+            # 1. LipSync cleanup
+            if hasattr(self, 'cleanup_lip_sync'):
+                self.cleanup_lip_sync()
+            
+            # 2. Animation cleanup
+            if hasattr(self, 'stop_animations'):
+                self.stop_animations()
+                
+            # 3. Base resources cleanup
+            if hasattr(self, 'cleanup_resources'):
+                self.cleanup_resources()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+        
+        # Set references to None
+        self.model = None
+        self.canvas = None
+
     def showEvent(self, event):
         """
         Override show event to ensure window is shown properly.
@@ -68,6 +113,9 @@ class PetWidget(LipSyncLive2DWidget):
         Handle close event to prevent actual window closing.
         Just hides the window instead.
         """
+        # Clean up resources first
+        self.cleanup()
+        
         # Prevent actual closing
         event.ignore()
         
@@ -114,6 +162,10 @@ class PetWidget(LipSyncLive2DWidget):
         
         # Show window without stealing focus
         self.show()
+        
+    def __del__(self):
+        """Ensure proper cleanup when object is garbage collected."""
+        self.cleanup()
 
 
 class Application(QApplication):
@@ -124,12 +176,17 @@ class Application(QApplication):
     
     def __init__(self, argv):
         super().__init__(argv)
+        self.pet_widget = None
         
         # Don't quit when window is closed
         self.setQuitOnLastWindowClosed(False)
         
         # Disable context help button on window titlebars
         self.setAttribute(Qt.AA_DisableWindowContextHelpButton)
+    
+    def register_pet_widget(self, widget):
+        """Register the pet widget for proper cleanup."""
+        self.pet_widget = widget
     
     def event(self, event):
         """Handle application-level events"""
@@ -150,13 +207,24 @@ class Application(QApplication):
                         window.setWindowState(window.windowState() & ~Qt.WindowMinimized)
                     
                     # Don't call raise_() or activateWindow() to avoid stealing focus
-                    
+        
+        # Handle application quit properly with cleanup
+        if event.type() == QEvent.Quit:
+            # Perform cleanup before actually quitting
+            if self.pet_widget:
+                self.pet_widget.cleanup()
+                
         # Block activation events to prevent focus stealing
         if event.type() in [QEvent.ApplicationActivate, QEvent.WindowActivate, QEvent.FocusIn]:
             return True  # Block these events
                     
         # Pass other events to default handler
         return super().event(event)
+        
+    def __del__(self):
+        """Clean up application resources."""
+        if self.pet_widget:
+            self.pet_widget.cleanup()
 
 
 def configure_opengl():
@@ -186,20 +254,28 @@ def run():
     # Initialize Live2D
     live2d.init()
     
+    app = None
+    pet = None
+    
     try:
         # Create application
         app = Application(sys.argv)
         
         # Create and show pet widget
         pet = PetWidget()
+        app.register_pet_widget(pet)
         pet.show()
         
         # Run application
-        result = app.exec_()
-        
-        return result
+        return app.exec_()
+    except Exception as e:
+        print(f"Error running application: {e}")
+        return 1
     finally:
-        # Clean up Live2D resources
+        # Ensure proper cleanup order
+        if pet:
+            pet.cleanup()
+        # Clean up Live2D resources only after other components are cleaned up
         live2d.dispose()
 
 

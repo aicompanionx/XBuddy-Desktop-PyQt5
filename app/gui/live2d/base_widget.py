@@ -55,52 +55,74 @@ class BaseLive2DWidget(QOpenGLWidget):
         
         # Set initial size
         self.resize(300, 600)
+        
+        # Track if we've initialized
+        self.is_initialized = False
+        
+        # Prevent redundant cleanup
+        self.is_cleaned_up = False
 
     def initializeGL(self):
         """Initialize OpenGL context and load Live2D model."""
         super().initializeGL()
         
-        # Print OpenGL information for debugging
-        print("GL_VERSION:", glGetString(GL_VERSION).decode())
         try:
-            print("GLSL_VERSION:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
-            print("GL_VENDOR:", glGetString(GL_VENDOR).decode())
-            print("GL_RENDERER:", glGetString(GL_RENDERER).decode())
-        except Exception as e:
-            print(f"Error getting additional OpenGL info: {e}")
-        
-        # Initialize Live2D model rendering
-        try:
-            live2d.glInit()  # Use glInit for OpenGL initialization
-        except Exception as e:
-            print(f"Warning: glInit failed, trying glewInit: {e}")
-            live2d.glewInit()
+            # Print OpenGL information for debugging
+            print("GL_VERSION:", glGetString(GL_VERSION).decode())
+            try:
+                print("GLSL_VERSION:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
+                print("GL_VENDOR:", glGetString(GL_VENDOR).decode())
+                print("GL_RENDERER:", glGetString(GL_RENDERER).decode())
+            except Exception as e:
+                print(f"Error getting additional OpenGL info: {e}")
             
-        # Create Live2D model
-        self.model = live2d.LAppModel()
-        self.model.LoadModelJson(self.model_path)
+            # Initialize Live2D model rendering
+            try:
+                live2d.glInit()  # Use glInit for OpenGL initialization
+            except Exception as e:
+                print(f"Warning: glInit failed, trying glewInit: {e}")
+                live2d.glewInit()
+                
+            # Create Live2D model
+            self.model = live2d.LAppModel()
+            self.model.LoadModelJson(self.model_path)
 
-        # Initialize Canvas for rendering
-        self.canvas = Canvas()
-        print("Canvas created successfully")
+            # Initialize Canvas for rendering
+            self.canvas = Canvas()
+            print("Canvas created successfully")
 
-        # Print model parameters for debugging
-        for i in range(self.model.GetParameterCount()):
-            param = self.model.GetParameter(i)
-            log.Debug(
-                param.id, param.type, param.value, param.max, param.min, param.default
-            )
+            # Print model parameters for debugging
+            for i in range(self.model.GetParameterCount()):
+                param = self.model.GetParameter(i)
+                log.Debug(
+                    param.id, param.type, param.value, param.max, param.min, param.default
+                )
 
-        # Start animation timer at 60 FPS
-        self.startTimer(int(1000 / 60))
+            # Start animation timer at 60 FPS
+            self.startTimer(int(1000 / 60))
+            
+            # Mark as initialized
+            self.is_initialized = True
+        except Exception as e:
+            print(f"Error in initializeGL: {e}")
+            self.is_initialized = False
 
     def timerEvent(self, event):
         """Handle timer events for animation updates."""
-        super().timerEvent(event)
-        self.update()
+        if not self.is_initialized or self.is_cleaned_up:
+            return
+            
+        try:
+            super().timerEvent(event)
+            self.update()
+        except Exception as e:
+            print(f"Error in base timerEvent: {e}")
 
     def on_draw(self):
         """Draw the Live2D model."""
+        if not self.model or self.is_cleaned_up:
+            return
+            
         try:
             live2d.clearBuffer()
             self.model.Draw()
@@ -109,6 +131,9 @@ class BaseLive2DWidget(QOpenGLWidget):
 
     def paintGL(self):
         """OpenGL painting method called by Qt framework."""
+        if not self.is_initialized or self.is_cleaned_up:
+            return
+            
         try:
             # Clear with transparency
             gl.glClearColor(0.0, 0.0, 0.0, 0.0)  # Fully transparent background
@@ -120,8 +145,10 @@ class BaseLive2DWidget(QOpenGLWidget):
             
             # Call parent implementation and update model
             super().paintGL()
-            self.model.Update()
-            self.canvas.Draw(self.on_draw)
+            
+            if self.model and self.canvas:
+                self.model.Update()
+                self.canvas.Draw(self.on_draw)
             
             # Restore OpenGL state
             gl.glDisable(gl.GL_BLEND)
@@ -130,9 +157,38 @@ class BaseLive2DWidget(QOpenGLWidget):
 
     def resizeGL(self, width, height):
         """Handle widget resize events."""
+        if not self.is_initialized or self.is_cleaned_up:
+            return
+            
         try:
             super().resizeGL(width, height)
-            self.model.Resize(width, height)
-            self.canvas.SetSize(width, height)
+            if self.model:
+                self.model.Resize(width, height)
+            if self.canvas:
+                self.canvas.SetSize(width, height)
         except Exception as e:
-            print(f"Error in resizeGL: {e}") 
+            print(f"Error in resizeGL: {e}")
+            
+    def cleanup_resources(self):
+        """Clean up OpenGL resources to prevent memory leaks."""
+        if self.is_cleaned_up:
+            return
+            
+        print("Cleaning up base widget resources")
+        
+        try:
+            # Mark as cleaned up to prevent further rendering
+            self.is_cleaned_up = True
+            
+            # Clear model reference (actual disposal is handled by Live2D manager)
+            self.model = None
+            
+            # Clear canvas
+            if self.canvas:
+                self.canvas = None
+        except Exception as e:
+            print(f"Error in cleanup_resources: {e}")
+            
+    def __del__(self):
+        """Ensure proper cleanup when object is destroyed."""
+        self.cleanup_resources() 
