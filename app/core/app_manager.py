@@ -23,12 +23,7 @@ class AppManager(QObject):
         # Import here to avoid circular imports
         from app.gui.main_window import MainWindow
         from app.gui.tray_icon import TrayIcon
-        from app.live2d.model_manager import ModelManager
         
-        # Initialize Live2D model manager
-        self.model_manager = ModelManager(self)
-        self.model_manager.init()
-
         # Create main window
         self.main_window = MainWindow(self)
         self.main_window.show()

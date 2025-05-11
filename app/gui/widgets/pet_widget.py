@@ -1,16 +1,21 @@
-import os
 import sys
 from pathlib import Path
-import OpenGL.GL as gl
+import OpenGL.GL as gl  # Make sure gl is imported at the module level
+from OpenGL.GL import glGetString, GL_VERSION, GL_SHADING_LANGUAGE_VERSION, GL_VENDOR, GL_RENDERER
 from PyQt5.QtGui import QMouseEvent, QKeyEvent, QCursor
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from live2d.utils.canvas import Canvas
+
 import live2d.v3 as live2d
 from live2d.utils import log
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtWidgets import QOpenGLWidget, QApplication
 from live2d.utils.lipsync import WavHandler
 from live2d.v3 import StandardParams
+
+
+# Use our SimpleCanvas implementation
+from app.gui.widgets.simple_canvas import SimpleCanvas as Canvas
+print("Using integrated SimpleCanvas")
 
 live2d.setLogEnable(True)
 RESOURCES_DIRECTORY = Path(__file__).parent.parent.parent.parent.absolute() / 'resources'
@@ -27,27 +32,49 @@ class BaseLive2D(QOpenGLWidget):
         self.model_path: str = str(RESOURCES_DIRECTORY / "models/Haru/Haru.model3.json")
 
         self.setWindowTitle("Live2DCanvas")
+        
+        # Configure window for transparency and no shadows
         self.setWindowFlags(
-            Qt.FramelessWindowHint |  # Borderless window
-            Qt.WindowStaysOnTopHint |  # Always on top (optional)
-            Qt.Tool  # Do not show in taskbar
+            Qt.FramelessWindowHint |      # Borderless window
+            Qt.WindowStaysOnTopHint |     # Always on top
+            Qt.Tool |                     # Do not show in taskbar
+            Qt.NoDropShadowWindowHint     # No shadow
         )
-        self.setAttribute(Qt.WA_TranslucentBackground)  # Enable transparent background
+        
+        # Enable transparent background
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # Remove background
+        self.setStyleSheet("background: transparent;")
+        
+        # Set initial size
         self.resize(300, 600)
 
     def initializeGL(self):
         super().initializeGL()
-        live2d.glewInit()
+        # Print detailed OpenGL information for debugging
+        print("GL_VERSION:", glGetString(GL_VERSION).decode())
+        try:
+            print("GLSL_VERSION:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
+            print("GL_VENDOR:", glGetString(GL_VENDOR).decode())
+            print("GL_RENDERER:", glGetString(GL_RENDERER).decode())
+        except Exception as e:
+            print("Error getting additional OpenGL info:", str(e))
+        
+        # Initialize Live2D model
+        try:
+            live2d.glInit()  # Use glInit instead of glewInit
+        except Exception as e:
+            print("Warning: glInit failed, trying glewInit:", str(e))
+            live2d.glewInit()
+            
         self.model = live2d.LAppModel()
         self.model.LoadModelJson(self.model_path)
 
-        # Must be created after OpenGL context is configured
+        # Try to create Canvas, handle possible errors
         self.canvas = Canvas()
+        print("Canvas created successfully")
 
-        # Disable auto-blink
-        # self.model.SetAutoBlinkEnable(False)
-        # Disable auto-breath
-        # self.model.SetAutoBreathEnable(False)
         # Print all available parameters
         for i in range(self.model.GetParameterCount()):
             param = self.model.GetParameter(i)
@@ -62,18 +89,38 @@ class BaseLive2D(QOpenGLWidget):
         self.update()
 
     def on_draw(self):
-        live2d.clearBuffer()
-        self.model.Draw()
+        try:
+            live2d.clearBuffer()
+            self.model.Draw()
+        except Exception as e:
+            print(f"Error in on_draw: {str(e)}")
 
     def paintGL(self):
-        super().paintGL()
-        self.model.Update()
-        self.canvas.Draw(self.on_draw)
+        try:
+            # Clear with transparency
+            gl.glClearColor(0.0, 0.0, 0.0, 0.0)  # Fully transparent background
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
+            
+            # Set up alpha blending for proper transparency
+            gl.glEnable(gl.GL_BLEND)
+            gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+            
+            super().paintGL()
+            self.model.Update()
+            self.canvas.Draw(self.on_draw)
+            
+            # Restore OpenGL state
+            gl.glDisable(gl.GL_BLEND)
+        except Exception as e:
+            print(f"Error in paintGL: {str(e)}")
 
     def resizeGL(self, width: int, height: int):
-        super().resizeGL(width, height)
-        self.model.Resize(width, height)
-        self.canvas.SetSize(width, height)
+        try:
+            super().resizeGL(width, height)
+            self.model.Resize(width, height)
+            self.canvas.SetSize(width, height)
+        except Exception as e:
+            print(f"Error in resizeGL: {str(e)}")
 
 
 class MoveLive2D(BaseLive2D):
@@ -83,35 +130,48 @@ class MoveLive2D(BaseLive2D):
         self.dragging = False
 
     def isInModelArea(self, x: int, y: int) -> bool:
-        h = self.height()
-        px = int(x)
-        py = int((h - y))
-        data = gl.glReadPixels(px, py, 1, 1, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE)
-        alpha = data[3]
-        result = alpha > 0
-        return result
+        try:
+            h = self.height()
+            px = int(x)
+            py = int((h - y))
+            data = gl.glReadPixels(px, py, 1, 1, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE)
+            alpha = data[3]
+            result = alpha > 0
+            return result
+        except Exception as e:
+            print(f"Error in isInModelArea: {str(e)}")
+            return True  # Default to True if there's an error
 
     def mousePressEvent(self, a0: QMouseEvent):
-        super().mousePressEvent(a0)
-        x, y = a0.x(), a0.y()
-        print(f'Pressed {x}, {y}')
-        if self.isInModelArea(x, y):
-            self.dragging = True
-            self.drag_offset = a0.globalPos() - self.pos()
+        try:
+            super().mousePressEvent(a0)
+            x, y = a0.x(), a0.y()
+            print(f'Pressed {x}, {y}')
+            if self.isInModelArea(x, y):
+                self.dragging = True
+                self.drag_offset = a0.globalPos() - self.pos()
+        except Exception as e:
+            print(f"Error in mousePressEvent: {str(e)}")
 
     def mouseMoveEvent(self, a0: QMouseEvent):
-        super().mouseMoveEvent(a0)
-        x, y = a0.x(), a0.y()
-        print(f'Moved {x}, {y}')
-        if self.dragging:
-            self.move(a0.globalPos() - self.drag_offset)
+        try:
+            super().mouseMoveEvent(a0)
+            x, y = a0.x(), a0.y()
+            print(f'Moved {x}, {y}')
+            if self.dragging:
+                self.move(a0.globalPos() - self.drag_offset)
+        except Exception as e:
+            print(f"Error in mouseMoveEvent: {str(e)}")
 
     def mouseReleaseEvent(self, a0: QMouseEvent):
-        super().mouseReleaseEvent(a0)
-        x, y = a0.x(), a0.y()
-        print(f'Released {x}, {y}')
-        if self.dragging:
-            self.dragging = False
+        try:
+            super().mouseReleaseEvent(a0)
+            x, y = a0.x(), a0.y()
+            print(f'Released {x}, {y}')
+            if self.dragging:
+                self.dragging = False
+        except Exception as e:
+            print(f"Error in mouseReleaseEvent: {str(e)}")
 
 
 class MotionLive2D(MoveLive2D):
