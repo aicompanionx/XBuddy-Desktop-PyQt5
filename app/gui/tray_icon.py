@@ -60,6 +60,7 @@ class TrayIcon(QSystemTrayIcon):
             self.show_action.setText("Show")
         else:
             self.app_manager.main_window.show()
+            # Do not call raise_() to avoid bringing window to front and stealing focus
             self.show_action.setText("Hide")
 
     def on_settings(self):
