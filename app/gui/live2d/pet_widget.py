@@ -9,10 +9,10 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QSurfaceFormat
 
 import live2d.v3 as live2d
-from app.gui.live2d.lip_sync_widget import LipSyncLive2DWidget
+from app.gui.live2d.button_widget import ButtonLive2DWidget
 
 
-class PetWidget(LipSyncLive2DWidget):
+class PetWidget(ButtonLive2DWidget):
     """
     Final desktop pet widget implementation.
     Handles window-level behaviors:
@@ -177,50 +177,50 @@ class Application(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
         self.pet_widget = None
-        
+
         # Don't quit when window is closed
         self.setQuitOnLastWindowClosed(False)
-        
+
         # Disable context help button on window titlebars
         self.setAttribute(Qt.AA_DisableWindowContextHelpButton)
-    
+
     def register_pet_widget(self, widget):
         """Register the pet widget for proper cleanup."""
         self.pet_widget = widget
-    
+
     def event(self, event):
         """Handle application-level events"""
         # Intercept close events to prevent unwanted application termination
         if event.type() == QEvent.Close:
             print("System close event intercepted - preventing close")
             return True  # Block the close event
-            
+
         # Handle desktop session events (logout/shutdown)
         if hasattr(QEvent, 'ApplicationStateChange') and event.type() == QEvent.ApplicationStateChange:
             print("Application state changed, ensuring windows remain visible")
-            
+
             # Ensure all windows remain visible
             for window in self.topLevelWidgets():
                 if window.isVisible():
                     # Restore from minimized state without activating
                     if window.windowState() & Qt.WindowMinimized:
                         window.setWindowState(window.windowState() & ~Qt.WindowMinimized)
-                    
+
                     # Don't call raise_() or activateWindow() to avoid stealing focus
-        
+
         # Handle application quit properly with cleanup
-        if event.type() == QEvent.Quit:
-            # Perform cleanup before actually quitting
-            if self.pet_widget:
-                self.pet_widget.cleanup()
-                
+        # if event.type() == QEvent.Quit:
+        #     # Perform cleanup before actually quitting
+        #     if self.pet_widget:
+        #         self.pet_widget.cleanup()
+
         # Block activation events to prevent focus stealing
         if event.type() in [QEvent.ApplicationActivate, QEvent.WindowActivate, QEvent.FocusIn]:
             return True  # Block these events
-                    
+
         # Pass other events to default handler
         return super().event(event)
-        
+
     def __del__(self):
         """Clean up application resources."""
         if self.pet_widget:
@@ -246,7 +246,7 @@ def run():
     """Run the Live2D desktop pet application"""
     # Configure OpenGL
     configure_opengl()
-    
+
     # Set application attributes
     QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)  # Force desktop OpenGL
     QCoreApplication.setAttribute(Qt.AA_MacPluginApplication, True)  # Acts more like a plugin on macOS
