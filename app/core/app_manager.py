@@ -51,5 +51,5 @@ class AppManager(QObject):
             self.model_manager.cleanup()
             
         # Quit application
-        from PySide6.QtWidgets import QApplication
+        from PyQt5.QtWidgets import QApplication
         QApplication.quit()

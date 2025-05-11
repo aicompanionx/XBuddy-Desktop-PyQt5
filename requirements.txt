@@ -1,4 +1,5 @@
-PySide6>=6.4.0
+live2d-py
+PyQt5
 PyOpenGL>=3.1.6
 PyOpenGL-accelerate>=3.1.6
 numpy>=1.23.0

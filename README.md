@@ -1,6 +1,6 @@
 # XBuddy Desktop
 
-A Live2D desktop pet application built with PySide6 and OpenGL.
+A Live2D desktop pet application built with PyQt5 and OpenGL.
 
 ## Features
 
@@ -12,8 +12,8 @@ A Live2D desktop pet application built with PySide6 and OpenGL.
 
 ## Requirements
 
-- Python 3.8+
-- PySide6
+- Python 3.11+
+- PyQt5
 - PyOpenGL
 - Other dependencies listed in requirements.txt
 
