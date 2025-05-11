@@ -1,3 +1,4 @@
+import random
 import sys
 
 from PyQt5.QtCore import Qt, QSize
@@ -63,16 +64,16 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
         self.buttons = [
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/message.svg',
                       on_click=on_click),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/transfer.svg',
-                      on_click=None),
+            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/switch.svg',
+                      on_click=self.on_click_switch),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/settings.svg',
                       on_click=None),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/volume.svg',
-                      on_click=None),
+                      on_click=self.on_click_volume),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/news.svg',
                       on_click=None),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/x.svg',
-                      on_click=None),
+                      on_click=self.on_click_x),
         ]
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -97,3 +98,29 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
             # Hide all buttons
             for btn in self.buttons:
                 btn.setVisible(False)
+
+    def on_click_switch(self):
+        if self.model_list:
+            self.model_path: str = random.choice(self.model_list)
+        self.model = live2d.LAppModel()
+        self.model.LoadModelJson(self.model_path)
+        self.paintGL()
+        self.resizeGL(self.width(), self.height())
+
+    def on_click_volume(self):
+        clicked_button = self.sender()
+        if not getattr(clicked_button, 'state', None):
+            clicked_button.state = 'on'
+        if clicked_button.state == 'on':
+            clicked_button.setIcon(QIcon(str(RESOURCES_DIRECTORY / 'icons/volume-off.svg')))
+            clicked_button.state = 'off'
+            self.play_sound_enabled = False
+        elif clicked_button.state == 'off':
+            clicked_button.setIcon(QIcon(str(RESOURCES_DIRECTORY / 'icons/volume.svg')))
+            clicked_button.state = 'on'
+            self.play_sound_enabled = True
+
+    def on_click_x(self):
+        # Hide all buttons
+        for btn in self.buttons:
+            btn.setVisible(False)

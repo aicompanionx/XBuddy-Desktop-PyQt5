@@ -1,7 +1,7 @@
 """
 Base class for Live2D widgets, handling OpenGL rendering and model initialization.
 """
-
+import os
 import sys
 from pathlib import Path
 import OpenGL.GL as gl
@@ -24,6 +24,13 @@ class BaseLive2DWidget(QOpenGLWidget):
     Base OpenGL widget for Live2D model rendering.
     Handles basic initialization, OpenGL setup, and model loading.
     """
+    def find_model3_json_files(self, root_dir):
+        model_files = []
+        for dirpath, _, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith("model3.json"):
+                    model_files.append(os.path.join(dirpath, filename))
+        return model_files
     
     def __init__(self):
         super().__init__()
@@ -31,7 +38,8 @@ class BaseLive2DWidget(QOpenGLWidget):
         # Will be initialized in initializeGL
         self.model = None
         self.canvas = None
-        
+
+        self.model_list = self.find_model3_json_files(RESOURCES_DIRECTORY / "models")
         # Default model path
         self.model_path = str(RESOURCES_DIRECTORY / "models/Haru/Haru.model3.json")
 
