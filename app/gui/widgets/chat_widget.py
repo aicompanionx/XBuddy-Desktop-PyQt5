@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, 
-                            QLineEdit, QAction)
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton,
+                            QLineEdit)
+from PyQt5.QtCore import pyqtSignal, QSize, Qt
 from PyQt5.QtGui import QFont, QIcon
 
 class ChatWidget(QWidget):
@@ -47,19 +47,21 @@ class ChatWidget(QWidget):
         self.message_input.returnPressed.connect(self.send_message)
         
         # Create send icon action
-        send_action = QAction(self)
+        send_action = QPushButton(self)
         send_action.setIcon(QIcon("resources/icons/tray_icon.png"))
-        send_action.triggered.connect(self.send_message)
-        self.message_input.addAction(send_action, QLineEdit.TrailingPosition)
+        send_action.setIconSize(QSize(24, 24))
+        send_action.clicked.connect(self.send_message)
         
         # Create microphone icon action
-        microphone_action = QAction(self)
+        microphone_action = QPushButton(self)
         microphone_action.setIcon(QIcon("resources/icons/logo.png"))
-        microphone_action.triggered.connect(self.toggle_microphone)
-        self.message_input.addAction(microphone_action, QLineEdit.TrailingPosition)
+        microphone_action.setIconSize(QSize(24, 24))
+        microphone_action.clicked.connect(self.toggle_microphone)
         
         # Add widgets to input layout
         input_layout.addWidget(self.message_input)
+        input_layout.addWidget(microphone_action)
+        input_layout.addWidget(send_action)
         
         # Add widgets to main layout
         main_layout.addWidget(self.message_area)
@@ -104,3 +106,12 @@ class ChatWidget(QWidget):
     def receive_message(self, message):
         """Handle receiving a message from the assistant"""
         self.add_message(message, is_user=False)
+
+if __name__ == '__main__':
+    import sys
+    from PyQt5.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    window = ChatWidget()
+    window.show()
+    sys.exit(app.exec_())
