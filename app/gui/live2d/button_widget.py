@@ -8,6 +8,7 @@ from live2d.v3 import live2d
 
 from app.gui.live2d.base_widget import RESOURCES_DIRECTORY
 from app.gui.live2d.lip_sync_widget import LipSyncLive2DWidget
+from app.gui.widgets.settings_widget import SettingsWindow
 
 
 class PetButton(QPushButton):
@@ -67,7 +68,7 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/switch.svg',
                       on_click=self.on_click_switch),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/settings.svg',
-                      on_click=None),
+                      on_click=self.on_click_settings),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/volume.svg',
                       on_click=self.on_click_volume),
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/news.svg',
@@ -75,6 +76,7 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
             PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/x.svg',
                       on_click=self.on_click_x),
         ]
+        self.settings_window = SettingsWindow()
 
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)
@@ -106,6 +108,9 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
         self.model.LoadModelJson(self.model_path)
         self.paintGL()
         self.resizeGL(self.width(), self.height())
+
+    def on_click_settings(self):
+        self.settings_window.show()
 
     def on_click_volume(self):
         clicked_button = self.sender()
