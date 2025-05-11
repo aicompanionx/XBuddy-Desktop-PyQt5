@@ -1,24 +1,30 @@
 """
 Draggable Live2D widget implementation with mouse interaction.
+Enables dragging the window by clicking on the Live2D model.
 """
 
 import OpenGL.GL as gl
 from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtCore import QPoint, Qt
 
 from app.gui.live2d.base_widget import BaseLive2DWidget
 
 
 class DraggableLive2DWidget(BaseLive2DWidget):
     """
-    Live2D widget with dragging capabilities.
-    Allows the user to move the widget by clicking and dragging on model areas.
+    Live2D widget with window dragging capabilities.
+    Allows the user to move the entire window by clicking and dragging
+    on the visible model area.
     """
     
     def __init__(self):
         super().__init__()
-        # Dragging state
-        self.dragging = False
-        self.drag_offset = None
+        # Window dragging state
+        self.window_dragging = False
+        self.drag_start_pos = None
+        
+        # Set mouse tracking to improve drag responsiveness
+        self.setMouseTracking(True)
 
     def isInModelArea(self, x, y):
         """
@@ -26,8 +32,8 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         Uses OpenGL to read pixel alpha value at the given coordinates.
         
         Args:
-            x (int): X coordinate
-            y (int): Y coordinate
+            x (int): X coordinate in widget space
+            y (int): Y coordinate in widget space
             
         Returns:
             bool: True if point is within model area (non-transparent)
@@ -51,48 +57,75 @@ class DraggableLive2DWidget(BaseLive2DWidget):
 
     def mousePressEvent(self, event: QMouseEvent):
         """
-        Handle mouse press events for dragging.
-        Start dragging when clicking on the model area.
+        Handle mouse press events to start window dragging.
+        Start dragging the window when clicking on the model area.
         """
         try:
+            # Call parent for any base functionality
             super().mousePressEvent(event)
-            x, y = event.x(), event.y()
-            print(f'Pressed {x}, {y}')
             
-            # Check if mouse is over the model
+            x, y = event.x(), event.y()
+            print(f'Mouse pressed at {x}, {y}')
+            
+            # Check if mouse is over the model's visible area
             if self.isInModelArea(x, y):
-                self.dragging = True
-                self.drag_offset = event.globalPos() - self.pos()
+                # Start window dragging
+                self.window_dragging = True
+                # Store the initial mouse position relative to the window
+                self.drag_start_pos = event.globalPos() - self.window().frameGeometry().topLeft()
+                
+                # Change cursor to indicate dragging is in progress
+                # This is optional but provides visual feedback
+                self.setCursor(Qt.ClosedHandCursor)
         except Exception as e:
             print(f"Error in mousePressEvent: {e}")
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
-        Handle mouse move events for dragging.
-        Move the widget when dragging.
+        Handle mouse move events for window dragging.
+        Move the entire window when dragging.
         """
         try:
+            # Call parent for any base functionality
             super().mouseMoveEvent(event)
-            x, y = event.x(), event.y()
-            print(f'Moved {x}, {y}')
             
-            # Move the widget if dragging
-            if self.dragging:
-                self.move(event.globalPos() - self.drag_offset)
+            # If we're in window dragging mode, move the window
+            if self.window_dragging:
+                # Calculate new window position
+                new_pos = event.globalPos() - self.drag_start_pos
+                
+                # Move the window (not just this widget)
+                self.window().move(new_pos)
+                
+                print(f'Window moved to {new_pos.x()}, {new_pos.y()}')
         except Exception as e:
             print(f"Error in mouseMoveEvent: {e}")
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """
-        Handle mouse release events to end dragging.
+        Handle mouse release events to end window dragging.
         """
         try:
+            # Call parent for any base functionality
             super().mouseReleaseEvent(event)
-            x, y = event.x(), event.y()
-            print(f'Released {x}, {y}')
             
-            # End dragging
-            if self.dragging:
-                self.dragging = False
+            # End window dragging
+            if self.window_dragging:
+                self.window_dragging = False
+                self.drag_start_pos = None
+                
+                # Restore cursor
+                self.setCursor(Qt.ArrowCursor)
+                
+                print('Window drag complete')
         except Exception as e:
-            print(f"Error in mouseReleaseEvent: {e}") 
+            print(f"Error in mouseReleaseEvent: {e}")
+            
+    def moveEvent(self, event):
+        """
+        Handle widget move events.
+        Called when the widget is moved to track position.
+        """
+        new_pos = event.pos()
+        print(f'Widget position changed: {new_pos.x()}, {new_pos.y()}')
+        super().moveEvent(event) 

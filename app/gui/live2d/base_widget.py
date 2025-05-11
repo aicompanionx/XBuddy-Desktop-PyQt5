@@ -61,6 +61,40 @@ class BaseLive2DWidget(QOpenGLWidget):
         
         # Prevent redundant cleanup
         self.is_cleaned_up = False
+        
+        # Store device pixel ratio for high DPI scaling
+        self.pixel_ratio = self.devicePixelRatio() * 2
+        
+        # Custom scale factor for additional clarity control
+        self.custom_scale_factor = 1.0
+
+    def setScaleFactor(self, scale_factor):
+        """
+        Set a custom scale factor to adjust model clarity.
+        
+        Args:
+            scale_factor (float): Scale factor value (1.0 is default, >1.0 increases clarity)
+        """
+        if scale_factor <= 0:
+            print("Warning: Scale factor must be positive, ignoring value")
+            return
+            
+        self.custom_scale_factor = scale_factor
+        print(f"Custom scale factor set to: {scale_factor}")
+        
+        # Force resize to apply the new scale factor
+        if self.is_initialized and not self.is_cleaned_up:
+            self.resizeGL(self.width(), self.height())
+            self.update()
+
+    def getEffectiveScale(self):
+        """
+        Get the effective scale factor (device pixel ratio * custom scale).
+        
+        Returns:
+            float: The effective scale factor
+        """
+        return self.pixel_ratio * self.custom_scale_factor
 
     def initializeGL(self):
         """Initialize OpenGL context and load Live2D model."""
@@ -90,6 +124,11 @@ class BaseLive2DWidget(QOpenGLWidget):
             # Initialize Canvas for rendering
             self.canvas = Canvas()
             print("Canvas created successfully")
+            
+            # Print device pixel ratio for debugging
+            print(f"Device pixel ratio: {self.pixel_ratio}")
+            print(f"Custom scale factor: {self.custom_scale_factor}")
+            print(f"Effective scale: {self.getEffectiveScale()}")
 
             # Print model parameters for debugging
             for i in range(self.model.GetParameterCount()):
@@ -162,10 +201,23 @@ class BaseLive2DWidget(QOpenGLWidget):
             
         try:
             super().resizeGL(width, height)
+            
+            # Update device pixel ratio in case it changed
+            self.pixel_ratio = self.devicePixelRatio()
+            
+            # Apply device pixel ratio scaling for high DPI displays
+            # Combined with custom scale factor
+            effective_scale = self.getEffectiveScale()
+            scaled_width = int(width * effective_scale)
+            scaled_height = int(height * effective_scale)
+            
+            print(f"Resizing with effective scale {effective_scale}: {width}x{height} -> {scaled_width}x{scaled_height}")
+
             if self.model:
-                self.model.Resize(width, height)
+                # Resize model with scaled dimensions
+                self.model.Resize(scaled_width, scaled_height)
             if self.canvas:
-                self.canvas.SetSize(width, height)
+                self.canvas.SetSize(scaled_width, scaled_height)
         except Exception as e:
             print(f"Error in resizeGL: {e}")
             
