@@ -7,10 +7,10 @@ import OpenGL.GL as gl
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtCore import QPoint, Qt
 
-from app.gui.live2d.base_widget import BaseLive2DWidget
+from app.gui.live2d.penetration_widget import PenetrationLive2DWidget
 
 
-class DraggableLive2DWidget(BaseLive2DWidget):
+class DraggableLive2DWidget(PenetrationLive2DWidget):
     """
     Live2D widget with window dragging capabilities.
     Allows the user to move the entire window by clicking and dragging
