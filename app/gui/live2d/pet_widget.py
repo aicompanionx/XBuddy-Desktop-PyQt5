@@ -26,37 +26,9 @@ class PetWidget(ButtonLive2DWidget):
         # Store timers for proper cleanup
         self.timers = []
         
-        # Ensure window stays on top but doesn't steal focus
-        self.setWindowFlags(
-            self.windowFlags() | 
-            Qt.WindowStaysOnTopHint |     # Always on top
-            Qt.WindowDoesNotAcceptFocus   # Don't steal keyboard focus
-        )
-        
-        # Platform-specific configurations
-        self._configure_platform_specific()
-        
-        # Prevent window from being minimized
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowMinimizeButtonHint)
-        
         # Set attribute to prevent taking focus when shown
         self.setAttribute(Qt.WA_ShowWithoutActivating)
-
-    def _configure_platform_specific(self):
-        """Apply platform-specific window configurations."""
-        # For Linux, use X11 bypass to avoid window manager interference
-        if platform.system() == "Linux":
-            self.setWindowFlags(self.windowFlags() | Qt.X11BypassWindowManagerHint)
         
-        # For macOS, use opacity trick for better stacking
-        elif platform.system() == "Darwin":
-            try:
-                # Almost fully opaque, triggers proper layer ordering on macOS
-                self.setWindowOpacity(0.999)
-                print("Applied macOS window opacity trick for better stacking")
-            except Exception as e:
-                print(f"Failed to apply macOS window trick: {e}")
-
     def startTimer(self, interval):
         """Override startTimer to keep track of timers for proper cleanup."""
         timer_id = super().startTimer(interval)
@@ -105,6 +77,7 @@ class PetWidget(ButtonLive2DWidget):
         Override show event to ensure window is shown properly.
         Avoids stealing focus when shown.
         """
+        self._should_be_visible = True
         super().showEvent(event)
         # Don't call raise_() or activateWindow() to avoid stealing focus
 
@@ -120,6 +93,7 @@ class PetWidget(ButtonLive2DWidget):
         event.ignore()
         
         # Just hide the window
+        self._should_be_visible = False
         self.hide()
 
     def event(self, event):
@@ -128,16 +102,30 @@ class PetWidget(ButtonLive2DWidget):
         Prevents focus stealing and ensures window remains visible.
         """
         # Block activation/focus events
-        if event.type() in [QEvent.WindowActivate, QEvent.FocusIn]:
-            return True  # Block these events
+        # if event.type() in [QEvent.WindowActivate, QEvent.FocusIn]:
+        #     return True  # Block these events
         
-        # Handle window losing focus
-        elif event.type() == QEvent.WindowDeactivate:
-            # Ensure the window remains visible when losing focus
-            self.setVisible(True)
-            
+        # # Handle window losing focus
+        # elif event.type() == QEvent.WindowDeactivate:
+        #     # Ensure the window remains visible when losing focus
+        #     if self._should_be_visible and not self.isVisible():
+        #         # Use timer to delay showing to avoid window manager conflicts
+        #         QTimer.singleShot(50, self._ensure_visible)
+        
+        # # Handle hide events - prevent automatic hiding
+        # elif event.type() == QEvent.Hide:
+        #     # Only prevent hide if it should be visible
+        #     if self._should_be_visible:
+        #         # Use timer to restore visibility
+        #         QTimer.singleShot(50, self._ensure_visible)
+        
         # For other events, use default handling
         return super().event(event)
+    
+    def _ensure_visible(self):
+        """Ensure the window is visible if it should be."""
+        if self._should_be_visible and not self.isVisible():
+            self.show()
 
     def changeEvent(self, event):
         """
@@ -161,7 +149,8 @@ class PetWidget(ButtonLive2DWidget):
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
         
         # Show window without stealing focus
-        self.show()
+        if self._should_be_visible:
+            self.show()
         
     def __del__(self):
         """Ensure proper cleanup when object is garbage collected."""
@@ -201,18 +190,14 @@ class Application(QApplication):
 
             # Ensure all windows remain visible
             for window in self.topLevelWidgets():
-                if window.isVisible():
+                if hasattr(window, '_should_be_visible') and window._should_be_visible:
+                    if not window.isVisible():
+                        window.show()
                     # Restore from minimized state without activating
                     if window.windowState() & Qt.WindowMinimized:
                         window.setWindowState(window.windowState() & ~Qt.WindowMinimized)
 
                     # Don't call raise_() or activateWindow() to avoid stealing focus
-
-        # Handle application quit properly with cleanup
-        # if event.type() == QEvent.Quit:
-        #     # Perform cleanup before actually quitting
-        #     if self.pet_widget:
-        #         self.pet_widget.cleanup()
 
         # Block activation events to prevent focus stealing
         if event.type() in [QEvent.ApplicationActivate, QEvent.WindowActivate, QEvent.FocusIn]:

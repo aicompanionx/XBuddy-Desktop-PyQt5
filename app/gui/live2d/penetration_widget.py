@@ -12,9 +12,18 @@ class MaskGeneratorWorker(QObject):
     def __init__(self):
         super().__init__()
         self._image_to_process = None
+        self._should_stop = False
+        
+    def stop(self):
+        """Signal the worker to stop processing."""
+        self._should_stop = True
 
     @pyqtSlot(QImage)
     def processImage(self, image: QImage):
+        if self._should_stop:
+            self.finished.emit()
+            return
+            
         expanded_region = QRegion()  # Region to store the expanded mask
         expansion_pixels = 50        # Number of pixels to expand outward
 
@@ -28,6 +37,8 @@ class MaskGeneratorWorker(QObject):
                 if not original_region.isEmpty():
                     # Iterate over all rectangles in the original region
                     for rect in original_region.rects():
+                        if self._should_stop:
+                            break
                         # Expand each rectangle
                         # adjusted(dx1, dy1, dx2, dy2) adjusts left, top, right, bottom edges
                         # Negative values expand outward, positive shrink inward
@@ -39,17 +50,23 @@ class MaskGeneratorWorker(QObject):
                     # image_bounds_rect = QRect(0, 0, image.width(), image.height())
                     # expanded_region = expanded_region.intersected(QRegion(image_bounds_rect))
 
-                    self.maskReady.emit(expanded_region)
+                    if not self._should_stop:
+                        self.maskReady.emit(expanded_region)
                 else:
                     # Emit empty region if the original is empty
-                    self.maskReady.emit(QRegion())
+                    if not self._should_stop:
+                        self.maskReady.emit(QRegion())
             else:
                 # Failed to create alpha mask image
-                self.maskReady.emit(QRegion())
+                if not self._should_stop:
+                    self.maskReady.emit(QRegion())
         else:
             # Invalid image or no alpha channel
-            self.maskReady.emit(QRegion())
-        self.finished.emit()
+            if not self._should_stop:
+                self.maskReady.emit(QRegion())
+                
+        if not self._should_stop:
+            self.finished.emit()
 
 
 class PenetrationLive2DWidget(BaseLive2DWidget):
@@ -75,9 +92,16 @@ class PenetrationLive2DWidget(BaseLive2DWidget):
         self.mask_update_timer = QElapsedTimer()
         self.mask_update_interval_ms = 50  # Update mask every 50 ms (~20 FPS)
         self.mask_update_timer.start()
+        
+        # Track cleanup state
+        self._penetration_cleaned_up = False
 
     @pyqtSlot(QRegion)
     def applyMaskSlot(self, region: QRegion):
+        # Skip if cleaned up
+        if self._penetration_cleaned_up:
+            return
+            
         # Only update the mask if it's different from the current one
         if region != self.current_mask_region:
             if not region.isEmpty():
@@ -91,27 +115,63 @@ class PenetrationLive2DWidget(BaseLive2DWidget):
 
     @pyqtSlot()
     def onMaskProcessingFinished(self):
+        # Skip if cleaned up
+        if self._penetration_cleaned_up:
+            return
+            
         self.mask_processing_busy = False
 
     def paintGL(self):
-        super().paintGL()
-        # Check if enough time has passed and the worker is not busy
-        if not self.mask_processing_busy and self.mask_update_timer.elapsed() > self.mask_update_interval_ms:
-            image = self.grabFramebuffer()
-            if not image.isNull() and image.hasAlphaChannel():
-                self.mask_processing_busy = True
-                # Send a copy of the image to the worker thread
-                self.requestMaskUpdate.emit(image.copy())
-                self.mask_update_timer.restart()
-            elif image.isNull() or not image.hasAlphaChannel():
-                # If the image is invalid, clear the mask if needed
-                if not self.current_mask_region.isEmpty():
-                    self.clearMask()
-                    self.current_mask_region = QRegion()
-                self.mask_processing_busy = False
-                self.mask_update_timer.restart()
-        # If busy or interval not met, mask won't update until next frame
+        # Skip if cleaned up
+        if hasattr(self, '_penetration_cleaned_up') and self._penetration_cleaned_up:
+            return
+            
+        try:
+            super().paintGL()
+            # Check if enough time has passed and the worker is not busy
+            if not self.mask_processing_busy and self.mask_update_timer.elapsed() > self.mask_update_interval_ms:
+                image = self.grabFramebuffer()
+                if not image.isNull() and image.hasAlphaChannel():
+                    self.mask_processing_busy = True
+                    # Send a copy of the image to the worker thread
+                    self.requestMaskUpdate.emit(image.copy())
+                    self.mask_update_timer.restart()
+                elif image.isNull() or not image.hasAlphaChannel():
+                    # If the image is invalid, clear the mask if needed
+                    if not self.current_mask_region.isEmpty():
+                        self.clearMask()
+                        self.current_mask_region = QRegion()
+                    self.mask_processing_busy = False
+                    self.mask_update_timer.restart()
+            # If busy or interval not met, mask won't update until next frame
+        except Exception as e:
+            print(f"Error in penetration widget paintGL: {e}")
+            
+    def cleanup(self):
+        """Clean up resources before destruction."""
+        if hasattr(self, '_penetration_cleaned_up') and self._penetration_cleaned_up:
+            return
+            
+        print("Cleaning up penetration widget")
+        self._penetration_cleaned_up = True
+        
+        # Stop the worker
+        if hasattr(self, 'mask_worker') and self.mask_worker:
+            self.mask_worker.stop()
+        
+        # Quit and wait for the thread
+        if hasattr(self, 'mask_thread') and self.mask_thread:
+            if self.mask_thread.isRunning():
+                print("Stopping mask thread...")
+                self.mask_thread.quit()
+                if not self.mask_thread.wait(3000):  # 3 second timeout
+                    print("Warning: Mask thread did not stop in time, terminating")
+                    self.mask_thread.terminate()
+                    self.mask_thread.wait()
+        
+        # Call parent cleanup if available
+        if hasattr(super(), 'cleanup'):
+            super().cleanup()
 
     def __del__(self):  # Destructor to clean up the thread
-        self.mask_thread.quit()
-        self.mask_thread.wait()
+        self.cleanup()

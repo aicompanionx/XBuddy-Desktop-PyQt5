@@ -1,6 +1,6 @@
 import sys
 import platform
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QCloseEvent
 
@@ -27,18 +27,14 @@ class MainWindow(PetWidget):
             
             # Configure window flags for frameless window with no shadow
             self.setWindowFlags(
-                self.windowFlags() |
-                Qt.FramelessWindowHint |        # No frame
-                Qt.WindowStaysOnTopHint |       # Stay on top
-                Qt.Tool |                       # No taskbar icon
-                Qt.NoDropShadowWindowHint |     # No shadow
-                Qt.WindowDoesNotAcceptFocus |    # Don't steal focus
-                Qt.WindowStaysOnTopHint
+                Qt.FramelessWindowHint |     # No frame
+                Qt.WindowStaysOnTopHint |     # Stay on top
+                Qt.NoDropShadowWindowHint     # No shadow
             )
             
             # Apply platform-specific fixes
             self.apply_platform_fixes()
-
+            
             # Set initial window size based on pet widget
             self.resize(900, 900)
             
