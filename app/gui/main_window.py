@@ -40,7 +40,7 @@ class MainWindow(PetWidget):
             self.apply_platform_fixes()
 
             # Set initial window size based on pet widget
-            self.resize(600, 600)
+            self.resize(900, 900)
             
             print("MainWindow initialized successfully with Live2D pet widget")
         except Exception as e:

@@ -128,6 +128,7 @@ class BaseLive2DWidget(QOpenGLWidget):
             # Create Live2D model
             self.model = live2d.LAppModel()
             self.model.LoadModelJson(self.model_path)
+            self.model.SetScale(0.5)
 
             # Initialize Canvas for rendering
             self.canvas = Canvas()

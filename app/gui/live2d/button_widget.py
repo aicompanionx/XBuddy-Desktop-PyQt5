@@ -106,6 +106,7 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
             self.model_path: str = random.choice(self.model_list)
         self.model = live2d.LAppModel()
         self.model.LoadModelJson(self.model_path)
+        self.model.SetScale(0.5)
         self.paintGL()
         self.resizeGL(self.width(), self.height())
 
