@@ -40,7 +40,7 @@ class MainWindow(PetWidget):
             self.apply_platform_fixes()
 
             # Set initial window size based on pet widget
-            self.resize(300, 600)
+            self.resize(600, 600)
             
             print("MainWindow initialized successfully with Live2D pet widget")
         except Exception as e:
@@ -89,7 +89,7 @@ class MainWindow(PetWidget):
         
     def event(self, event):
         """Filter focus-related events to prevent stealing focus"""
-        
+
         # Block activation/focus events
         if event.type() in [QEvent.WindowActivate, QEvent.FocusIn]:
             return True  # Block these events
