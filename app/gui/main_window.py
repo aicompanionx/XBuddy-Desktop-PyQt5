@@ -7,7 +7,7 @@ from PyQt5.QtGui import QCloseEvent
 from app.gui.live2d.pet_widget import PetWidget
 
 
-class MainWindow(QMainWindow):
+class MainWindow(PetWidget):
     """Main application window containing Live2D pet widget and chat widget"""
 
     def __init__(self, app_manager):
@@ -38,20 +38,7 @@ class MainWindow(QMainWindow):
             
             # Apply platform-specific fixes
             self.apply_platform_fixes()
-            
-            # Create central widget and layout
-            central_widget = QWidget()
-            central_widget.setAttribute(Qt.WA_TranslucentBackground)
-            self.setCentralWidget(central_widget)
-            
-            layout = QVBoxLayout(central_widget)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
-            
-            # Create and add the pet widget
-            self.pet_widget = PetWidget()
-            layout.addWidget(self.pet_widget)
-            
+
             # Set initial window size based on pet widget
             self.resize(300, 600)
             
