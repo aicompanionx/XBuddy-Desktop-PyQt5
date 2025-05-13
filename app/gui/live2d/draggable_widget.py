@@ -7,10 +7,10 @@ import OpenGL.GL as gl
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtCore import QPoint, Qt
 
-from app.gui.live2d.base_widget import BaseLive2DWidget
+from app.gui.live2d.penetration_widget import PenetrationLive2DWidget
 
 
-class DraggableLive2DWidget(BaseLive2DWidget):
+class DraggableLive2DWidget(PenetrationLive2DWidget):
     """
     Live2D widget with window dragging capabilities.
     Allows the user to move the entire window by clicking and dragging
@@ -25,6 +25,9 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         
         # Set mouse tracking to improve drag responsiveness
         self.setMouseTracking(True)
+        
+        # Track cleanup state
+        self._drag_cleaned_up = False
 
     def isInModelArea(self, x, y):
         """
@@ -38,6 +41,10 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         Returns:
             bool: True if point is within model area (non-transparent)
         """
+        # Skip if cleaned up
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return False
+            
         try:
             h = self.height()
             px = int(x)
@@ -60,6 +67,10 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         Handle mouse press events to start window dragging.
         Start dragging the window when clicking on the model area.
         """
+        # Skip if cleaned up
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return
+            
         try:
             # Call parent for any base functionality
             super().mousePressEvent(event)
@@ -85,6 +96,10 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         Handle mouse move events for window dragging.
         Move the entire window when dragging.
         """
+        # Skip if cleaned up
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return
+            
         try:
             # Call parent for any base functionality
             super().mouseMoveEvent(event)
@@ -105,6 +120,10 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         """
         Handle mouse release events to end window dragging.
         """
+        # Skip if cleaned up
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return
+            
         try:
             # Call parent for any base functionality
             super().mouseReleaseEvent(event)
@@ -126,6 +145,28 @@ class DraggableLive2DWidget(BaseLive2DWidget):
         Handle widget move events.
         Called when the widget is moved to track position.
         """
+        # Skip if cleaned up
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return
+            
         new_pos = event.pos()
         print(f'Widget position changed: {new_pos.x()}, {new_pos.y()}')
-        super().moveEvent(event) 
+        super().moveEvent(event)
+        
+    def cleanup(self):
+        """Clean up resources before destruction."""
+        if hasattr(self, '_drag_cleaned_up') and self._drag_cleaned_up:
+            return
+            
+        print("Cleaning up draggable widget")
+        self._drag_cleaned_up = True
+        self.window_dragging = False
+        self.drag_start_pos = None
+        
+        # Call parent cleanup if available
+        if hasattr(super(), 'cleanup'):
+            super().cleanup()
+            
+    def __del__(self):
+        """Ensure cleanup when object is destroyed."""
+        self.cleanup() 

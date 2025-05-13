@@ -61,7 +61,7 @@ def main():
     QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)  # Force desktop OpenGL
     
     # Prevent activating windows on show
-    QCoreApplication.setAttribute(Qt.AA_MacPluginApplication, True)  # Acts more like a plugin on macOS
+    # QCoreApplication.setAttribute(Qt.AA_MacPluginApplication, True)  # Acts more like a plugin on macOS
     
     live2d.init()
     

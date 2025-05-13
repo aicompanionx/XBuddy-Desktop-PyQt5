@@ -1,12 +1,12 @@
 """
 Base class for Live2D widgets, handling OpenGL rendering and model initialization.
 """
-
+import os
 import sys
 from pathlib import Path
 import OpenGL.GL as gl
 from OpenGL.GL import glGetString, GL_VERSION, GL_SHADING_LANGUAGE_VERSION, GL_VENDOR, GL_RENDERER
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QOpenGLWidget
 
 import live2d.v3 as live2d
@@ -24,6 +24,13 @@ class BaseLive2DWidget(QOpenGLWidget):
     Base OpenGL widget for Live2D model rendering.
     Handles basic initialization, OpenGL setup, and model loading.
     """
+    def find_model3_json_files(self, root_dir):
+        model_files = []
+        for dirpath, _, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith("model3.json"):
+                    model_files.append(os.path.join(dirpath, filename))
+        return model_files
     
     def __init__(self):
         super().__init__()
@@ -31,7 +38,8 @@ class BaseLive2DWidget(QOpenGLWidget):
         # Will be initialized in initializeGL
         self.model = None
         self.canvas = None
-        
+
+        self.model_list = self.find_model3_json_files(RESOURCES_DIRECTORY / "models")
         # Default model path
         self.model_path = str(RESOURCES_DIRECTORY / "models/Haru/Haru.model3.json")
 
@@ -67,6 +75,9 @@ class BaseLive2DWidget(QOpenGLWidget):
         
         # Custom scale factor for additional clarity control
         self.custom_scale_factor = 1.0
+        
+        # Store timer IDs for cleanup
+        self.timer_ids = []
 
     def setScaleFactor(self, scale_factor):
         """
@@ -120,6 +131,7 @@ class BaseLive2DWidget(QOpenGLWidget):
             # Create Live2D model
             self.model = live2d.LAppModel()
             self.model.LoadModelJson(self.model_path)
+            self.model.SetScale(0.5)
 
             # Initialize Canvas for rendering
             self.canvas = Canvas()
@@ -131,20 +143,31 @@ class BaseLive2DWidget(QOpenGLWidget):
             print(f"Effective scale: {self.getEffectiveScale()}")
 
             # Print model parameters for debugging
-            for i in range(self.model.GetParameterCount()):
-                param = self.model.GetParameter(i)
-                log.Debug(
-                    param.id, param.type, param.value, param.max, param.min, param.default
-                )
+            try:
+                if self.model and hasattr(self.model, 'GetParameterCount'):
+                    for i in range(self.model.GetParameterCount()):
+                        param = self.model.GetParameter(i)
+                        log.Debug(
+                            param.id, param.type, param.value, param.max, param.min, param.default
+                        )
+            except Exception as e:
+                print(f"Error getting model parameters: {e}")
 
             # Start animation timer at 60 FPS
-            self.startTimer(int(1000 / 60))
+            timer_id = self.startTimer(int(1000 / 60))
+            self.timer_ids.append(timer_id)
             
             # Mark as initialized
             self.is_initialized = True
         except Exception as e:
             print(f"Error in initializeGL: {e}")
             self.is_initialized = False
+
+    def startTimer(self, interval):
+        """Override to keep track of timer IDs."""
+        timer_id = super().startTimer(interval)
+        self.timer_ids.append(timer_id)
+        return timer_id
 
     def timerEvent(self, event):
         """Handle timer events for animation updates."""
@@ -163,8 +186,10 @@ class BaseLive2DWidget(QOpenGLWidget):
             return
             
         try:
-            live2d.clearBuffer()
-            self.model.Draw()
+            if hasattr(live2d, 'clearBuffer'):
+                live2d.clearBuffer()
+            if hasattr(self.model, 'Draw'):
+                self.model.Draw()
         except Exception as e:
             print(f"Error in on_draw: {e}")
 
@@ -186,8 +211,10 @@ class BaseLive2DWidget(QOpenGLWidget):
             super().paintGL()
             
             if self.model and self.canvas:
-                self.model.Update()
-                self.canvas.Draw(self.on_draw)
+                if hasattr(self.model, 'Update'):
+                    self.model.Update()
+                if hasattr(self.canvas, 'Draw'):
+                    self.canvas.Draw(self.on_draw)
             
             # Restore OpenGL state
             gl.glDisable(gl.GL_BLEND)
@@ -213,13 +240,22 @@ class BaseLive2DWidget(QOpenGLWidget):
             
             print(f"Resizing with effective scale {effective_scale}: {width}x{height} -> {scaled_width}x{scaled_height}")
 
-            if self.model:
+            if self.model and hasattr(self.model, 'Resize'):
                 # Resize model with scaled dimensions
                 self.model.Resize(scaled_width, scaled_height)
-            if self.canvas:
+            if self.canvas and hasattr(self.canvas, 'SetSize'):
                 self.canvas.SetSize(scaled_width, scaled_height)
         except Exception as e:
             print(f"Error in resizeGL: {e}")
+    
+    def stop_timers(self):
+        """Stop all timers to prevent callbacks after cleanup."""
+        for timer_id in self.timer_ids:
+            try:
+                self.killTimer(timer_id)
+            except Exception as e:
+                print(f"Error stopping timer {timer_id}: {e}")
+        self.timer_ids.clear()
             
     def cleanup_resources(self):
         """Clean up OpenGL resources to prevent memory leaks."""
@@ -232,6 +268,9 @@ class BaseLive2DWidget(QOpenGLWidget):
             # Mark as cleaned up to prevent further rendering
             self.is_cleaned_up = True
             
+            # Stop all timers first
+            self.stop_timers()
+            
             # Clear model reference (actual disposal is handled by Live2D manager)
             self.model = None
             
@@ -241,6 +280,14 @@ class BaseLive2DWidget(QOpenGLWidget):
         except Exception as e:
             print(f"Error in cleanup_resources: {e}")
             
+    def cleanup(self):
+        """Clean up all resources."""
+        if self.is_cleaned_up:
+            return
+            
+        print("Base widget cleanup")
+        self.cleanup_resources()
+            
     def __del__(self):
         """Ensure proper cleanup when object is destroyed."""
-        self.cleanup_resources() 
+        self.cleanup() 
