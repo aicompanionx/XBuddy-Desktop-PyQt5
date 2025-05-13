@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
             
             # Create pet widget and set its fixed size
             self.pet_widget = PetWidget()
-            self.pet_widget.setFixedSize(300, 600) # Pet widget has a fixed size
+            self.pet_widget.setFixedSize(600, 600) # Pet widget has a fixed size
             
             self.chat_widget = ChatWidget() # Chat widget has an adaptive height
 

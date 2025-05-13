@@ -12,16 +12,9 @@ from app.gui.widgets.settings_widget import SettingsWindow
 
 
 class PetButton(QPushButton):
-    def __init__(self, text='', icon_path=None, on_click=None, parent=None):
-        super().__init__(text, parent)
+    def __init__(self, parent=None, icon_path=None, on_click=None):
+        super().__init__(parent)
 
-        # Set window flags: frameless, always on top, no taskbar
-        self.setWindowFlags(
-            Qt.FramelessWindowHint |
-            Qt.WindowStaysOnTopHint |
-            Qt.Tool
-        )
-        self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowOpacity(0.8)
 
         # Set style
@@ -51,62 +44,59 @@ class PetButton(QPushButton):
         if on_click:
             self.clicked.connect(on_click)
 
-
-def on_click(*args, **kwargs):
-    try:
-        print("Button clicked")
-    except Exception as e:
-        print(f"Error handling button click: {e}")
+    def set_scale(self, scale):
+        self.setFixedSize(int(50 * scale), int(50 * scale))
+        self.setIconSize(QSize(int(24 * scale), int(24 * scale)))
 
 
 class ButtonLive2DWidget(LipSyncLive2DWidget):
     def __init__(self):
         super().__init__()
         self.buttons = [
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/message.svg',
-                      on_click=on_click),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/switch.svg',
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/message.svg',
+                      on_click=self.on_click_message),
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/switch.svg',
                       on_click=self.on_click_switch),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/settings.svg',
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/settings.svg',
                       on_click=self.on_click_settings),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/volume.svg',
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/volume.svg',
                       on_click=self.on_click_volume),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/news.svg',
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/news.svg',
                       on_click=None),
-            PetButton(icon_path=RESOURCES_DIRECTORY / 'icons/x.svg',
+            PetButton(self, icon_path=RESOURCES_DIRECTORY / 'icons/x.svg',
                       on_click=self.on_click_x),
         ]
         self.settings_window = SettingsWindow()
 
+        self.buttons[0].move(50, 150)
+        self.buttons[1].move(0, 275)
+        self.buttons[2].move(50, 400)
+        self.buttons[3].move(500, 150)
+        self.buttons[4].move(550, 275)
+        self.buttons[5].move(500, 400)
+
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)
         if event.button() == Qt.MouseButton.RightButton:
-
-            # Set fixed positions for each button relative to the main window
-            center = self.frameGeometry().center()
-            x = center.x()
-            y = center.y()
-            self.buttons[0].move(x - 200, y - 100)
-            self.buttons[1].move(x - 250, y)
-            self.buttons[2].move(x - 200, y + 100)
-            self.buttons[3].move(x + 200, y - 100)
-            self.buttons[4].move(x + 250, y)
-            self.buttons[5].move(x + 200, y + 100)
-
+            print('show buttons')
             # Show all buttons
             for btn in self.buttons:
                 btn.setVisible(True)
         else:
+            print('hide buttons')
             # Hide all buttons
             for btn in self.buttons:
                 btn.setVisible(False)
+
+    def on_click_message(self):
+        self.set_scale(0.8)
 
     def on_click_switch(self):
         if self.model_list:
             self.model_path: str = random.choice(self.model_list)
         self.model = live2d.LAppModel()
         self.model.LoadModelJson(self.model_path)
-        self.model.SetScale(0.5)
+        self.model.SetScale(0.8)
         self.paintGL()
         self.resizeGL(self.width(), self.height())
 
@@ -130,3 +120,28 @@ class ButtonLive2DWidget(LipSyncLive2DWidget):
         # Hide all buttons
         for btn in self.buttons:
             btn.setVisible(False)
+
+    def set_scale(self, scale):
+        for btn in self.buttons:
+            btn.set_scale(scale)
+
+        self.model = live2d.LAppModel()
+        self.model.LoadModelJson(self.model_path)
+        self.model.SetScale(0.8 * scale)
+        self.paintGL()
+        self.resizeGL(self.width(), self.height())
+
+
+def run(window_class: type):
+    live2d.init()
+    app = QApplication(sys.argv)
+    win = window_class()
+    win.show()
+    app.exec()
+    # Clean up worker thread by deleting the window object which calls its destructor
+    del win
+    live2d.dispose()
+
+
+if __name__ == '__main__':
+    run(ButtonLive2DWidget)
