@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton,
-                            QLineEdit, QLabel)
+                            QLineEdit, QLabel, QFrame)
 from PyQt5.QtCore import pyqtSignal, QSize, Qt, QEvent, QTimer, QUrl
 from PyQt5.QtGui import QFont, QIcon
 from app.api.client import ApiClient
@@ -14,7 +14,7 @@ class ChatWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.microphone_active = False
-        self.input_padding = 16 # From previous calculation: (8px top + 8px bottom)
+        self.input_padding = 8 
         self.one_line_input_height = 0
         self.three_lines_input_height = 0
         self.is_first_chunk = True # For managing streaming display
@@ -122,7 +122,10 @@ class ChatWidget(QWidget):
         self.answer_display_area.hide() # Initially hidden
 
         # --- Input Container --- 
-        self.input_container = QWidget() # Made it an instance variable
+        # Use QFrame instead of QWidget to better control appearance
+        self.input_container = QFrame() # Changed to QFrame for better styling control
+        self.input_container.setObjectName("chatInputContainer") # Give it a name for styling
+        self.input_container.setFrameShape(QFrame.StyledPanel) # Use styled panel for better border control
         input_container_layout = QHBoxLayout(self.input_container)
         input_container_layout.setContentsMargins(4, 4, 4, 4)
         input_container_layout.setSpacing(2)
@@ -130,13 +133,14 @@ class ChatWidget(QWidget):
         # Message input field - use QTextEdit for multi-line support
         self.message_input = QTextEdit()
         self.message_input.setPlaceholderText("Type your message here...")
-        self.message_input.setFont(QFont('Arial', 14))
+        self.message_input.setFont(QFont('Arial', 12))
         self.message_input.setStyleSheet("""
             QTextEdit {
                 background-color: transparent;
                 color: #f0f0f0;
                 border: none;
-                padding: 8px 10px;
+                padding: 5px 8px;
+                border-radius: 16px;
             }
         """)
         self.message_input.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) # Hide horizontal scrollbar
@@ -160,23 +164,23 @@ class ChatWidget(QWidget):
         # Create send button
         send_action = QPushButton(self)
         send_action.setIcon(QIcon("resources/icons/send-icon.png"))
-        send_action.setIconSize(QSize(18, 18))
+        send_action.setIconSize(QSize(15, 15))
         send_action.clicked.connect(self.send_message)
         
         # Create microphone button
         microphone_action = QPushButton(self)
         microphone_action.setIcon(QIcon("resources/icons/microphone-icon.png"))
-        microphone_action.setIconSize(QSize(18, 18))
+        microphone_action.setIconSize(QSize(15, 15))
         microphone_action.clicked.connect(self.toggle_microphone)
         
         button_style = """
             QPushButton {
                 background-color: transparent;
                 border: none;
-                min-width: 20px;
-                max-width: 20px;
-                min-height: 20px;
-                max-height: 20px;
+                min-width: 16px;
+                max-width: 16px;
+                min-height: 16px;
+                max-height: 16px;
                 border-radius: 10px;
             }
             QPushButton:last {
@@ -199,11 +203,12 @@ class ChatWidget(QWidget):
         
         # Apply style to the container
         self.input_container.setStyleSheet(""" 
-            QWidget {
+            QFrame#chatInputContainer {
                 background-color: rgba(102, 102, 102, 0.9);
                 border-radius: 20px;
                 color: #ffffff;
                 padding: 4px;
+                border: 1px solid rgba(120, 120, 120, 0.4); /* Subtle border to ensure visibility */
             }
         """)
         

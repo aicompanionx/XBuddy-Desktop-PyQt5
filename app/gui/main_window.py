@@ -54,16 +54,20 @@ class MainWindow(QMainWindow):
             # Create a fixed-size placeholder for news
             self.news_container = QFrame()
             self.news_container.setFixedHeight(65)  # Much smaller height to reduce gap
+            self.news_container.setFixedWidth(200)  #
             self.news_container.setStyleSheet("background: transparent;")
             self.news_layout = QVBoxLayout(self.news_container)
             self.news_layout.setContentsMargins(0, 0, 0, 0)
             self.news_layout.setSpacing(0)
             # Set alignment to top instead of using stretch
-            self.news_layout.setAlignment(Qt.AlignTop)
+            self.news_layout.setAlignment(Qt.AlignBottom)
             
             # Create pet widget and set its fixed size
             self.pet_widget = PetWidget()
-            self.pet_widget.setFixedSize(300, 600) # Pet widget has a fixed size
+            self.pet_widget.setFixedSize(200, 400) # Pet widget has a fixed size
+            
+            # Set window fixed width to match pet widget width
+            self.setFixedWidth(200)
             
             self.chat_widget = ChatWidget() # Chat widget has an adaptive height
 
@@ -85,9 +89,9 @@ class MainWindow(QMainWindow):
             
             # Order of widgets in layout
             self.layout.addStretch(1) # This spacer takes up available space at the top
-            self.layout.addWidget(self.news_container)  # Fixed-size news container
-            self.layout.addWidget(self.chat_widget) # Chat widget takes its preferred adaptive size
-            self.layout.addWidget(self.pet_widget)  # Pet widget takes its fixed size and sits at the bottom
+            self.layout.addWidget(self.news_container, 0, Qt.AlignCenter)  # Center align news container
+            self.layout.addWidget(self.chat_widget, 0, Qt.AlignCenter) # Center align chat widget
+            self.layout.addWidget(self.pet_widget, 0, Qt.AlignCenter)  # Center align pet widget
             
             print("MainWindow initialized successfully with Live2D pet widget")
             

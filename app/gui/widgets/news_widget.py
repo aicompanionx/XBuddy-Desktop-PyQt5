@@ -224,9 +224,9 @@ class NewsWidget(QWidget):
             QLabel {
                 background-color: white;
                 color: black;
-                border-radius: 12px; /* Slightly smaller rounded corners */
-                padding: 10px;      /* Reduced padding */
-                font-size: 12px;    /* Slightly smaller font */
+                border-radius: 10px;      
+                padding: 8px;            
+                font-size: 11px;          
                 font-weight: normal;
             }
         ''')
@@ -242,10 +242,10 @@ class NewsWidget(QWidget):
         self.setStyleSheet('''
             NewsWidget {
                 background-color: #D0D8FF; /* Light blue/purple background */
-                border-radius: 15px;       /* Slightly smaller rounded corners */
+                border-radius: 12px;       
                 cursor: pointer;           /* Show pointer cursor on hover */
                 font-weight: normal;
-                margin: 5px 10px;          /* Reduced vertical margins */
+                margin: 3px 5px;           
                 max-height: 80px;          /* Limit height to fit in container */
             }
         ''')
@@ -266,7 +266,7 @@ class NewsWidget(QWidget):
         
         if not text_width > 0:
             # Set a default width for initial rendering
-            text_width = 300
+            text_width = 180
 
         lines = []
         current_line = ""
