@@ -46,7 +46,7 @@ class RealChatWebSocketClient(ChatWebSocketClientBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Create WebSocket client - 不使用VersionLatest属性，它不存在
+        # Create WebSocket client
         self.ws_client = QWebSocket("", QWebSocket.Default, self)
         
         # Connect signals

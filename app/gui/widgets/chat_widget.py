@@ -54,7 +54,6 @@ class ChatWidget(QWidget):
             print(f"Connecting to chat WebSocket at: {ws_url}")
         except Exception as e:
             print(f"Error connecting to chat WebSocket: {e}")
-            # 发生错误时使用硬编码URL作为备选
             try:
                 fallback_url = "wss://api.xbuddy.me/dev/api/v1/chat/ws"
                 print(f"Trying fallback chat WebSocket URL: {fallback_url}")
@@ -77,9 +76,6 @@ class ChatWidget(QWidget):
     def on_message_received(self, message, code):
         """Handle received message from WebSocket"""
         if code == 0: 
-            if self.is_first_chunk:
-                self.answer_display_area.clear()
-                self.is_first_chunk = False
             self.stream_assistant_response_chunk(message)
         elif code == 1: 
             self.answer_display_area.clear()
@@ -340,8 +336,15 @@ class ChatWidget(QWidget):
     def stream_assistant_response_chunk(self, chunk: str):
         """Appends a chunk of the assistant's response to the display area."""
         if self.is_first_chunk:
-            self.answer_display_area.clear() # Clear "Let me think..."
+            current_text = self.answer_display_area.toPlainText()
+            
+            if current_text == "Let me think...":
+                self.answer_display_area.clear()
+            else:
+                self.answer_display_area.clear()
+                
             self.is_first_chunk = False
+        
         self.answer_display_area.insertPlainText(chunk)
         self.answer_display_area.ensureCursorVisible() # Scroll to end
         self.adjust_answer_display_height() # Adjust height after each chunk

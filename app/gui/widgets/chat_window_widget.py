@@ -49,7 +49,7 @@ class ChatWindowWidget(QWidget):
         try:
             # Use ApiRoutes to get the WebSocket URL
             base_url = ApiClient.base_url
-            if not base_url:  # 如果base_url为None或空字符串
+            if not base_url:
                 base_url = "https://api.xbuddy.me/dev/api/v1"
                 
             api_routes = ApiRoutes(base_url)
@@ -59,7 +59,6 @@ class ChatWindowWidget(QWidget):
             print(f"Connecting to chat WebSocket at: {ws_url}")
         except Exception as e:
             print(f"Error connecting to chat WebSocket: {e}")
-            # 发生错误时使用硬编码URL作为备选
             try:
                 fallback_url = "wss://api.xbuddy.me/dev/api/v1/chat/ws"
                 print(f"Trying fallback chat WebSocket URL: {fallback_url}")
@@ -81,12 +80,12 @@ class ChatWindowWidget(QWidget):
         
     def on_message_received(self, message, code):
         """Handle received message from WebSocket"""
-        if code == 0:  # 正确输出
+        if code == 0:
             self.receive_bot_message(message)
-        elif code == 1:  # 错误输出
+        elif code == 1: 
             self.receive_bot_message(f"Error: {message}")
-        elif code == 2:  # 单轮对话结束
-            pass  # 聊天窗口不需要特殊处理结束信号
+        elif code == 2:  
+            pass  
         else:
             print(f"Unknown message code: {code}")
             
