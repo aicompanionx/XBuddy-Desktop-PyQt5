@@ -24,10 +24,14 @@ class Endpoints:
     # Chat endpoints
     CHAT_SEND = "chat/send"
     CHAT_HISTORY = "chat/history"
+    CHAT_WS = "chat/ws"  # WebSocket endpoint for real-time chat
 
     # System endpoints
     SYSTEM_UPDATE = "system/update"
     SYSTEM_CONFIG = "system/config"
+    
+    # News endpoints
+    NEWS_WS = "news/ws"  # WebSocket endpoint for real-time news
 
 
 class ApiRoutes:
@@ -39,6 +43,12 @@ class ApiRoutes:
     def get_url(self, endpoint):
         """Get full URL for an endpoint"""
         return f"{self.base_url}/{endpoint}"
+
+    def get_ws_url(self, endpoint):
+        """Get WebSocket URL for an endpoint"""
+        # Convert http(s):// to ws(s)://
+        ws_base = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
+        return f"{ws_base}/{endpoint}"
 
     def health(self):
         """Health check endpoint"""
@@ -91,3 +101,11 @@ class ApiRoutes:
     def system_config(self):
         """System config endpoint"""
         return self.get_url(Endpoints.SYSTEM_CONFIG)
+
+    def news_ws(self):
+        """News WebSocket endpoint"""
+        return self.get_ws_url(Endpoints.NEWS_WS)
+
+    def chat_ws(self):
+        """Chat WebSocket endpoint"""
+        return self.get_ws_url(Endpoints.CHAT_WS)
