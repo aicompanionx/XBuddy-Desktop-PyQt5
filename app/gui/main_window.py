@@ -33,13 +33,9 @@ class MainWindow(QMainWindow):
             
             # Configure window flags for frameless window with no shadow
             self.setWindowFlags(
-                self.windowFlags() |
-                Qt.FramelessWindowHint |        # No frame
-                Qt.WindowStaysOnTopHint |       # Stay on top
-                Qt.Tool |                       # No taskbar icon
-                Qt.NoDropShadowWindowHint |     # No shadow
-                # Qt.WindowDoesNotAcceptFocus |    # Don't steal focus
-                Qt.WindowStaysOnTopHint
+                Qt.FramelessWindowHint |     # No frame
+                Qt.WindowStaysOnTopHint |     # Stay on top
+                Qt.NoDropShadowWindowHint     # No shadow
             )
             
             # Apply platform-specific fixes
@@ -246,7 +242,7 @@ class MainWindow(QMainWindow):
         
     def event(self, event):
         """Filter focus-related events to prevent stealing focus"""
-        
+
         # Block activation/focus events
         if event.type() in [QEvent.WindowActivate, QEvent.FocusIn]:
             return True  # Block these events

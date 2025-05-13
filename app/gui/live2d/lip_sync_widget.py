@@ -19,24 +19,25 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
     - Audio playback
     - Lip movement synchronized with audio
     """
-    
+
     def __init__(self):
         super().__init__()
-        
+
         # Initialize audio player
         self.player = QMediaPlayer()
-        
+
         # Initialize lip sync handler
         self.wavHandler = WavHandler()
-        
+
         # Lip sync sensitivity multiplier
         self.lipSyncN = 3
-        
+
         # Audio playback state
         self.audioPlayed = False
-        
+
         # Flag to control lip sync
         self.lip_sync_enabled = True
+        self.play_sound_enabled = True
 
     def play_audio(self, file_path):
         """
@@ -48,10 +49,10 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
         try:
             # Convert file path to QUrl
             url = QUrl.fromLocalFile(file_path)
-            
+
             # Create media content from URL
             media = QMediaContent(url)
-            
+
             # Set and play the media
             self.player.setMedia(media)
             self.player.play()
@@ -73,13 +74,13 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
         """Clean up lip sync and audio resources."""
         self.stop_audio()
         self.lip_sync_enabled = False
-        
+
         # Clear references
         try:
             if hasattr(self, 'player') and self.player:
                 self.player.stop()
                 self.player.setMedia(QMediaContent())  # Clear media
-            
+
             # Set to None at the end to avoid access during cleanup
             self.wavHandler = None
             self.player = None
@@ -93,18 +94,20 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
         """
         # Call parent implementation
         super().on_start_motion_callback(group, no)
-        
+
         # Skip if lip sync is disabled
-        if not self.lip_sync_enabled or not self.wavHandler:
+        if (not self.lip_sync_enabled or
+                not self.play_sound_enabled or
+                not self.wavHandler):
             return
-            
+
         try:
             # Path to audio file
             audio_path = str(RESOURCES_DIRECTORY / 'sounds/audio.wav')
-            
+
             # Play audio file
             self.play_audio(audio_path)
-            
+
             # Start lip sync processing
             log.Info("Starting lip sync")
             self.wavHandler.Start(audio_path)
@@ -120,7 +123,7 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
         # Skip if lip sync is disabled or resources are missing
         if not self.lip_sync_enabled or not self.wavHandler or not self.model:
             return super().timerEvent(event)
-            
+
         try:
             # Update lip sync if active
             if self.wavHandler.Update():
@@ -132,14 +135,14 @@ class LipSyncLive2DWidget(AnimatedLive2DWidget):
         except Exception as e:
             print(f"Error in lip sync timerEvent: {e}")
             self.lip_sync_enabled = False
-        
+
         # Call parent implementation
         try:
             super().timerEvent(event)
         except Exception as e:
             print(f"Error calling parent timerEvent: {e}")
-            
+
     def stop_animations(self):
         """Override to also stop audio and lip sync."""
         super().stop_animations()
-        self.stop_audio() 
+        self.stop_audio()
