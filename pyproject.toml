@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=60.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "XBuddy-Desktop-PyQt5"
+version = "0.0.1"
+authors = [
+    { name = "XBuddy-Desktop-PyQt5 Developers", email = "example@example.com" },
+]
+description = ""
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+]
+
+[dependency-groups]
+dev = [
+    "build",
+    "twine",
+
+    "coverage",
+    "pytest",
+    "tox",
+    "mypy",
+    "ruff",
+    "pre-commit",
+
+    "sphinx",
+    "sphinx-autobuild",
+
+    "jinja2",
+    "python-dotenv",
+    "rtoml",
+    "beautifulsoup4",
+    "click",
+
+    "types-setuptools"
+]
+
+[tool.uv]
+default-groups = "all"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ""
+testpaths = [
+    "tests"
+]
+
+[tool.ruff]
+extend-exclude = [
+]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[tool.mypy]
+exclude = [
+]
