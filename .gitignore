@@ -13,6 +13,8 @@ node_modules/
 /tests/tmp
 # build
 dist/
+build/
+*.spec
 *.egg-info/
 # coverage
 .coverage

@@ -240,6 +240,7 @@ class ButtonWindow(QMainWindow):
         self.input_panel.move(center_x, center_y)
 
     def show_widgets(self):
+        self.show()
         for button in self.buttons:
             button.show()
         self.input_panel.input_field.setVisible(True)

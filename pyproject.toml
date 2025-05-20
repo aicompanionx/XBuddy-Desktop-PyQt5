@@ -22,6 +22,7 @@ dependencies = [
     "live2d-py",
     "pydantic",
     "aiohttp",
+    "pyinstaller>=6.13.0",
 ]
 
 [dependency-groups]
