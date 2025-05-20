@@ -1,0 +1,68 @@
+QPushButton {
+    background-color: #40444b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+}
+QPushButton:hover {
+    background-color: #5865f2;
+}
+QLineEdit {
+    width: 200px;
+    height: 30px;
+    background-color: #40444b;
+    color: white;
+    border: none;
+    padding: 10px;
+    font-size: 14px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+QPushButton#sendBtn {
+    width: 10px;
+    height: 30px;
+    background-color: #40444b;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+QPushButton#sendBtn:hover {
+    background-color: #5865f2;
+}
+QPushButton#microphoneBtn {
+    width: 10px;
+    height: 30px;
+    background-color: #40444b;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+QPushButton#microphoneBtn:hover {
+    background-color: #5865f2;
+}
+QLabel {
+    width: 200px;
+    height: 30px;
+    background-color: #40444b;
+    color: white;
+    border: none;
+    padding: 10px;
+    font-size: 14px;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}

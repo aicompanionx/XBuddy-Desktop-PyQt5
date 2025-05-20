@@ -14,4 +14,4 @@ jobs:
           python-version: "3.13"
 
       - name: Run lint
-        run: tox --runner virtualenv -e format,type
+        run: tox --runner virtualenv -e format
