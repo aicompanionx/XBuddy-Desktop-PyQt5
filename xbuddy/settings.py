@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
 
-if getattr(sys, 'frozen', False):
-    PROJECT_DIR = Path(sys.executable).resolve().parent.absolute() / '_internal'
+if getattr(sys, "frozen", False):
+    PROJECT_DIR = Path(sys.executable).resolve().parent.absolute() / "_internal"
 else:
     PROJECT_DIR = Path(__file__).resolve().parent.parent.absolute()
 

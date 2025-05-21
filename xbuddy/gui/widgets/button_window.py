@@ -8,24 +8,102 @@ from PyQt5.QtCore import (
     QTimer,
 )
 from PyQt5.QtGui import (
+    QCursor,
     QIcon,
 )
 from PyQt5.QtWidgets import (
     QApplication,
+    QDesktopWidget,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from xbuddy.gui.utils import get_logger, transparent
+from xbuddy.api.schemas.news import News
+from xbuddy.gui.utils import get_logger, transparent, transparent_and_taskbar
+from xbuddy.gui.widgets.base_widgets import TitleBar
 from xbuddy.settings import QSS, RESOURCES_DIRECTORY
 
 logger = get_logger(__name__)
+
+
+class ClickableLabel(QLabel):
+    def __init__(self, text=""):
+        super().__init__(text)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self._on_click_callback = None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and self._on_click_callback:
+            self._on_click_callback()
+
+    def clicked_connect(self, callback):
+        self._on_click_callback = callback
+
+
+class NewsWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("News Window")
+        transparent_and_taskbar(self)
+        self.setWindowIcon(QIcon(str(RESOURCES_DIRECTORY / "icons/logo.png")))
+
+        screen = QDesktopWidget().availableGeometry()
+        width = screen.width() // 2
+        height = screen.height() // 2
+
+        self.setGeometry(
+            screen.x() + (screen.width() - width) // 2,
+            screen.y() + (screen.height() - height) // 2,
+            width,
+            height,
+        )
+
+        self.setStyleSheet("""
+        QLabel {
+            background-color: #40444b;
+            color: white;
+            padding: 10px;
+            font-size: 14px;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        QScrollArea {
+            background-color: #40444b;
+            border: none;
+        }
+        """)
+
+        self.titleBar = TitleBar(self, "News")
+
+        self.label = QLabel()
+        self.label.setWordWrap(True)
+        self.label.setAlignment(Qt.AlignTop)
+        self.label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self.label.setOpenExternalLinks(True)
+        self.label.setText("")
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.label)
+        scroll_area.setFrameShape(QScrollArea.NoFrame)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.titleBar)
+        main_layout.setSpacing(0)
+        main_layout.addWidget(scroll_area)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        self.setLayout(main_layout)
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
 
 class InputPanel(QWidget):
@@ -51,8 +129,6 @@ class InputPanel(QWidget):
         self.message_label.setStyleSheet(QSS)
         self.message_label.setMinimumWidth(300)
         self.message_label.setMaximumHeight(100)
-        # size = self.message_label.sizeHint()
-        # self.message_label.setFixedHeight(size.height())
 
     def init_ui(self):
         self.main_layout = QVBoxLayout()
@@ -85,7 +161,11 @@ class InputPanel(QWidget):
         self.microphone_button.setCursor(Qt.PointingHandCursor)
         self.microphone_button.clicked.connect(self.on_microphone)
 
-        self.message_label = QLabel('no content')
+        self.news_window = NewsWindow()
+        self.news_window.hide()
+
+        self.message_label = ClickableLabel("no content")
+        self.message_label.clicked_connect(self.on_click_news)
         self.message_label.setAlignment(Qt.AlignCenter)
         self.message_label.setWordWrap(True)
 
@@ -106,15 +186,27 @@ class InputPanel(QWidget):
 
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self._fade_out)
+        self.timer.timeout.connect(self.message_label.hide)
 
-    def show_toast(self, text: str, duration: int = 6000):
-        self.message_label.setText(text)
+    def show_news(self, message: str, duration: int = 6000):
+        news = News.model_validate_json(message)
+        self.message_label.news = news
+        self.message_label.setText(news.title)
         self.message_label.show()
         self.timer.start(duration)
 
-    def _fade_out(self):
-        self.message_label.hide()
+    def on_click_news(self):
+        content = f"""
+        <div style="text-align: center; font-weight: bold; font-size: 24px;">
+            {self.message_label.news.title.replace("\n", "<br>")}
+        </div>
+        <hr>
+        <div style="font-size: 18px; text-align: left;">
+            {self.message_label.news.abstract.replace("\n", "<br>")}
+        </div>
+        """
+        self.news_window.label.setText(content)
+        self.news_window.show()
 
     def on_send(self):
         content = self.input_field.text()
@@ -162,7 +254,7 @@ class ButtonWindow(QMainWindow):
         # self.update_window_mask()
 
     def init_window(self):
-        self.setGeometry(400, 200, 600, 900)
+        self.setGeometry(400, 200, 600, 800)
         self.setWindowOpacity(0.8)
         transparent(self)
 
@@ -254,19 +346,6 @@ class ButtonWindow(QMainWindow):
         self.input_panel.input_field.setVisible(False)
         self.input_panel.send_button.setVisible(False)
         self.input_panel.microphone_button.setVisible(False)
-
-    # def update_window_mask(self):
-    #     pixmap = QPixmap(self.size())
-    #     pixmap.fill(Qt.transparent)
-    #     image = pixmap.toImage()
-    #
-    #     region = None
-    #     mask_mono_image = image.createAlphaMask(Qt.ThresholdAlphaDither)
-    #     if not mask_mono_image.isNull():
-    #         mask_bitmap = QBitmap.fromImage(mask_mono_image)
-    #         region = QRegion(mask_bitmap)
-    #     if region:
-    #         self.setMask(region)
 
 
 if __name__ == "__main__":

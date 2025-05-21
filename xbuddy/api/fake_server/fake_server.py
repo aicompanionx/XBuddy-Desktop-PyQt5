@@ -1,21 +1,20 @@
 import asyncio
+import json
 import random
 from datetime import datetime
 
 from aiohttp import web
 
 from xbuddy.api.schemas.news import News
+from xbuddy.settings import PROJECT_DIR
+
+news_list = json.loads(
+    (PROJECT_DIR / "xbuddy/api/fake_server/news.json").read_text(encoding="utf=8")
+)
 
 
 async def websocket_news_handler(request):
     index = -1
-    news_list = [
-        "The Bull Case for Galaxy Digital Is AI Data Centers Not Bitcoin Mining, Research Firm Says",
-        "Metaplanet Buys Another 1,004 Bitcoin, Lifts Holdings to Over $800M Worth of BTC",
-        "Bulls and Bears Get Caught off Guard as Bitcoin Jumps to $106K, Then Falls Back to $103K",
-        "Crypto Daybook Americas: Bitcoin Whiplash Shakes Market as U.S. Yield Spike Threatens Bull Run",
-        "Elon Musk's assassination of Trump failed and died, the doge coin plummeted to almost zero, and the Trump coin soared",
-    ]
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
@@ -24,8 +23,8 @@ async def websocket_news_handler(request):
         while True:
             index += 1
             news = News(
-                title="this is title",
-                abstract=news_list[index % len(news_list)],
+                title=news_list[index % len(news_list)]["title"],
+                abstract=news_list[index % len(news_list)]["abstract"],
                 cover_img="https://example.com/image.png",
                 published_at=int(datetime.now().timestamp()),
                 origin_url="https://example.com/original",

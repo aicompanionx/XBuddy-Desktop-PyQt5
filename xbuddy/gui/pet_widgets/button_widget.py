@@ -4,9 +4,9 @@ from PyQt5.QtGui import QIcon, QMouseEvent
 
 from xbuddy.api.schemas.news import News
 from xbuddy.api.utils import WebSocketWorker
-from xbuddy.gui.widgets.button_window import ButtonWindow
 from xbuddy.gui.pet_widgets.penetration_widget import PenetrationLive2DWidget
 from xbuddy.gui.utils import get_logger, run
+from xbuddy.gui.widgets.button_window import ButtonWindow
 from xbuddy.settings import DEFAULT_MODEL_SCALE, RESOURCES_DIRECTORY
 
 logger = get_logger(__name__)
@@ -15,6 +15,8 @@ logger = get_logger(__name__)
 class ButtonLive2DWidget(PenetrationLive2DWidget):
     def __init__(self):
         super().__init__()
+        self.update_news = True
+
         self.btn_win = ButtonWindow()
         self.btn_win.hide_widgets()
         self.btn_win.show()
@@ -44,8 +46,9 @@ class ButtonLive2DWidget(PenetrationLive2DWidget):
         self.btn_win.move_window_to(self)
 
     def update_label(self, message):
-        self.btn_win.move_window_to(self)
-        self.btn_win.input_panel.show_toast(News.model_validate_json(message).abstract)
+        if self.update_news:
+            self.btn_win.move_window_to(self)
+            self.btn_win.input_panel.show_news(message)
 
     def on_click_message(self):
         pass
@@ -73,14 +76,31 @@ class ButtonLive2DWidget(PenetrationLive2DWidget):
                 QIcon(str(RESOURCES_DIRECTORY / "icons/volume-off.svg"))
             )
             clicked_button.state = "off"
-            self.play_sound_enabled = False
+            self.disable_play_sound = False
         elif clicked_button.state == "off":
             clicked_button.setIcon(QIcon(str(RESOURCES_DIRECTORY / "icons/volume.svg")))
             clicked_button.state = "on"
-            self.play_sound_enabled = True
+            self.disable_play_sound = True
 
     def on_click_news(self):
-        pass
+        clicked_button = self.sender()
+        if not getattr(clicked_button, "state", None):
+            clicked_button.state = "on"
+        if clicked_button.state == "on":
+            clicked_button.setIcon(
+                QIcon(str(RESOURCES_DIRECTORY / "icons/news-off.svg"))
+            )
+            clicked_button.state = "off"
+            self.news_worker.stop()
+            self.btn_win.input_panel.message_label.hide()
+            self.update_news = False
+        elif clicked_button.state == "off":
+            clicked_button.setIcon(QIcon(str(RESOURCES_DIRECTORY / "icons/news.svg")))
+            clicked_button.state = "on"
+            self.update_news = True
+            self.news_worker = WebSocketWorker("/dev/api/v1/news/ws", News)
+            self.news_worker.message_received.connect(self.update_label)
+            self.news_worker.start()
 
     def closeEvent(self, a0):
         super().closeEvent(a0)

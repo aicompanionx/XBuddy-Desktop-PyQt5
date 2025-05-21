@@ -17,7 +17,7 @@ class LipSyncLive2DWidget(MotionLive2DWidget):
         self.player = QMediaPlayer()
         self.wavHandler = WavHandler()
         self.lipSyncN = 3
-        self.audioPlayed = False
+        self.disable_play_sound = False
 
     def play_audio(self, file_path: str):
         url = QUrl.fromLocalFile(file_path)
@@ -27,10 +27,11 @@ class LipSyncLive2DWidget(MotionLive2DWidget):
 
     def on_start_motion_callback(self, group: str, no: int):
         super().on_start_motion_callback(group, no)
-        audio_path = str(RESOURCES_DIRECTORY / "sounds/audio.wav")
-        self.play_audio(audio_path)
-        logger.info("start lipSync")
-        self.wavHandler.Start(audio_path)
+        if not self.disable_play_sound:
+            audio_path = str(RESOURCES_DIRECTORY / "sounds/audio.wav")
+            self.play_audio(audio_path)
+            logger.info("start lipSync")
+            self.wavHandler.Start(audio_path)
 
     def timerEvent(self, a0):
         if self.wavHandler.Update():

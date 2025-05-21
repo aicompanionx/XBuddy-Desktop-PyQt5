@@ -39,6 +39,16 @@ def get_logger(name=__name__):
     return logger
 
 
+def transparent_and_taskbar(widget: QWidget) -> None:
+    widget.setWindowFlags(
+        Qt.FramelessWindowHint  # Borderless window
+        | Qt.WindowStaysOnTopHint  # Always on top
+        | Qt.NoDropShadowWindowHint  # No shadow
+    )
+    # Enable transparent background
+    widget.setAttribute(Qt.WA_TranslucentBackground)
+
+
 def transparent(widget: QWidget) -> None:
     widget.setWindowFlags(
         Qt.FramelessWindowHint  # Borderless window
